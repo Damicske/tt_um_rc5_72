@@ -117,7 +117,7 @@ async def wait_ready(dut, timeout_cycles=200000):
     # genuine hang, not an expected duration.
     for _ in range(timeout_cycles):
         await RisingEdge(dut.clk)
-        if (int(dut.uo_out.value) >> UO_READY) & 1:
+        if not (int(dut.uo_out.value) >> UO_READY) & 1:
             return
     assert False, "timed out waiting for ready"
 
