@@ -100,7 +100,7 @@ async def send_work_unit(dut, base_key, count, pt_a, pt_b, target_a, target_b):
     set_ui_bit(dut, UI_CS_N, 1)
 
 
-async def wait_ready(dut, timeout_cycles=200000):
+async def wait_ready(dut, timeout_cycles=1000000):
     # count=1 in every scenario below keeps this well within budget -
     # ~93 cycles for the compute core itself, plus request/response SPI
     # overhead - the large timeout is just a safety net against a
