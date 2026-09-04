@@ -68,18 +68,13 @@ async def spi_send_byte(dut, data):
 async def spi_read_byte(dut):
     data = 0
     set_ui_bit(dut, UI_MOSI, 0)  # MOSI low for read
-    # Dummy rising/falling edge to start the transaction
-    await ClockCycles(dut.clk, SCLK_HALF_CYCLES)
-    set_ui_bit(dut, UI_SCLK, 1)  # Rising edge (DUT samples MOSI, but we don't care)
-    await ClockCycles(dut.clk, SCLK_HALF_CYCLES)
-    set_ui_bit(dut, UI_SCLK, 0)  # Falling edge (DUT drives MISO for bit 7)
     for i in range(7, -1, -1):
         await ClockCycles(dut.clk, SCLK_HALF_CYCLES)
-        set_ui_bit(dut, UI_SCLK, 1)  # Rising edge (sample MISO here)
+        set_ui_bit(dut, UI_SCLK, 1)  # Rising edge: DUT drives MISO on previous falling edge
         bit = (int(dut.uo_out.value) >> UO_MISO) & 1
         data = (data << 1) | bit
         await ClockCycles(dut.clk, SCLK_HALF_CYCLES)
-        set_ui_bit(dut, UI_SCLK, 0)  # Falling edge (DUT drives MISO for next bit)
+        set_ui_bit(dut, UI_SCLK, 0)  # Falling edge: DUT drives MISO for next bit
     return data
 
 
@@ -118,6 +113,7 @@ async def wait_ready(dut, timeout_cycles=200000):
 async def recv_response(dut):
     await wait_ready(dut)
     set_ui_bit(dut, UI_CS_N, 0)
+    await ClockCycles(dut.clk, 10)  # Let DUT prepare MISO (critical!)
     sync = await spi_read_byte(dut)
     status = await spi_read_byte(dut)
     result = {"sync": sync, "status": status}
