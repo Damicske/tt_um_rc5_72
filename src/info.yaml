@@ -1,11 +1,11 @@
 # Tiny Tapeout project information
 project:
   title:        "RC5-72 iterative cracker core"
-  author:       "TODO: your name"
-  discord:      "TODO: your discord username, optional"
+  author:       "Damic"
+  discord:      ""
   description:  "Area-optimized, iterative RC5-72 batch-search core - tests one key at a time (~93 cycles/key) against a target ciphertext, over a 5-signal SPI slave interface."
   language:     "Verilog"
-  clock_hz:     0
+  clock_hz:     45000000
   # How many tiles your design occupies - a single tile is about 167x108uM.
   # Set to 8x2 (16 tiles) for now - the next fixed size up that
   # comfortably covers the ~13-tile back-of-envelope estimate from
