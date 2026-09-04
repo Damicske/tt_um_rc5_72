@@ -82,32 +82,23 @@ async def spi_read_byte(dut):
 
 
 async def send_work_unit(dut, base_key, count, pt_a, pt_b, target_a, target_b):
-    dut._log.info("Starting work unit send...")
     set_ui_bit(dut, UI_CS_N, 0)
     await spi_send_byte(dut, 0xAA)  # sync
-    dut._log.info("Sent sync byte 0xAA")
     await spi_send_byte(dut, 0x01)  # cmd
-    dut._log.info("Sent sync byte 0x01")
     for i in range(9):
         await spi_send_byte(dut, (base_key >> (8 * i)) & 0xFF)
-    dut._log.info("Sent basekey")
     for i in range(4):
         await spi_send_byte(dut, (count >> (8 * i)) & 0xFF)
-    dut._log.info("Sent count")
     for i in range(4):
         await spi_send_byte(dut, (pt_a >> (8 * i)) & 0xFF)
-    dut._log.info("Sent pt_a")
     for i in range(4):
         await spi_send_byte(dut, (pt_b >> (8 * i)) & 0xFF)
-    dut._log.info("Sent pt_b")
     for i in range(4):
         await spi_send_byte(dut, (target_a >> (8 * i)) & 0xFF)
-    dut._log.info("Sent target_a")
     for i in range(4):
         await spi_send_byte(dut, (target_b >> (8 * i)) & 0xFF)
-    dut._log.info("Sent target_b")
-    set_ui_bit(dut, UI_CS_N, 1)
-    dut._log.info("Finished sending work unit")
+    #set_ui_bit(dut, UI_CS_N, 1)
+
     
 
 async def wait_ready(dut, timeout_cycles=200000):
@@ -124,7 +115,7 @@ async def wait_ready(dut, timeout_cycles=200000):
 
 async def recv_response(dut):
     await wait_ready(dut)
-    set_ui_bit(dut, UI_CS_N, 0)
+   # set_ui_bit(dut, UI_CS_N, 0)
     sync = await spi_read_byte(dut)
     status = await spi_read_byte(dut)
     result = {"sync": sync, "status": status}
