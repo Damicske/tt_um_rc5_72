@@ -6,6 +6,7 @@ project:
   description:  "Area-optimized, iterative RC5-72 batch-search core - tests one key at a time (~93 cycles/key) against a target ciphertext, over a 5-signal SPI slave interface."
   language:     "Verilog"
   clock_hz:     45000000
+  
   # How many tiles your design occupies - a single tile is about 167x108uM.
   # Set to 8x2 (16 tiles) for now - the next fixed size up that
   # comfortably covers the ~13-tile back-of-envelope estimate from
@@ -15,7 +16,9 @@ project:
   # 1x2, 2x2, 3x2, 4x2, 6x2, 8x2 - "TODO" or any other placeholder text
   # will fail validation here, unlike the free-text fields above.
   tiles:        "8x2"
+  
   top_module:   "tt_um_rc5_72"
+  
   source_files:
     - "tt_um_rc5_72.v"
     - "rc5_batch_controller_spi.v"
@@ -34,6 +37,7 @@ project:
     ui[5]: ""
     ui[6]: ""
     ui[7]: ""
+    
     # Outputs
     uo[0]: "spi miso"
     uo[1]: "spi ready"
@@ -43,6 +47,7 @@ project:
     uo[5]: ""
     uo[6]: ""
     uo[7]: ""
+    
     # Bidirectional pins
     uio[0]: ""
     uio[1]: ""
