@@ -36,20 +36,39 @@ SCLK_HALF_CYCLES = 4
 async def reset(dut):
     dut.rst_n.value = 0
     dut.ena.value = 1
-    dut.ui_in.value = 0b100  # cs_n idle-high, sclk/mosi low
+    _ui_in_state[0] = 0b100  # cs_n idle-high, sclk/mosi low - keep the
+        # Python-side tracker explicitly in sync with what's driven below
+    dut.ui_in.value = _ui_in_state[0]
     dut.uio_in.value = 0
     await ClockCycles(dut.clk, 10)
     dut.rst_n.value = 1
     await ClockCycles(dut.clk, 5)
 
 
+# ---- intended ui_in state, tracked purely in Python - NOT read back
+# from the simulator. FIX: the original set_ui_bit did
+# `cur = int(dut.ui_in.value)` then modified and rewrote it - but
+# send_work_unit asserts cs_n=0 and then, with no await in between,
+# immediately calls spi_send_byte, whose own first action is ANOTHER
+# un-awaited set_ui_bit call (for mosi) doing its own fresh read of
+# dut.ui_in.value. If that write isn't immediately visible on a
+# subsequent read without an intervening await/trigger, the second call
+# reads the stale, pre-write value and silently overwrites the just-set
+# cs_n=0 back to 1 - sclk/mosi keep toggling correctly relative to each
+# other afterward, but cs_n never genuinely goes low, so the slave
+# ignores everything. Exactly matches the observed symptom (clock and
+# data visibly going in, nothing ever comes out). Tracking state in
+# Python removes the read-after-write dependency on simulator timing
+# entirely, rather than trying to work around its exact scheduling.
+_ui_in_state = [0b100]  # cs_n idle-high, sclk/mosi low
+
+
 def set_ui_bit(dut, bit, value):
-    cur = int(dut.ui_in.value)
     if value:
-        cur |= (1 << bit)
+        _ui_in_state[0] |= (1 << bit)
     else:
-        cur &= ~(1 << bit)
-    dut.ui_in.value = cur
+        _ui_in_state[0] &= ~(1 << bit)
+    dut.ui_in.value = _ui_in_state[0] & 0xFF
 
 
 async def spi_send_byte(dut, data):
@@ -66,15 +85,18 @@ async def spi_send_byte(dut, data):
 
 
 async def spi_read_byte(dut):
+    # Pure read - mosi held low throughout, sample miso on each rising
+    # edge (matches spi_slave.v's own convention: miso changes on the
+    # falling edge, so it's stable before the next rising-edge sample).
     data = 0
-    set_ui_bit(dut, UI_MOSI, 0)  # MOSI low for read
+    set_ui_bit(dut, UI_MOSI, 0)
     for i in range(7, -1, -1):
         await ClockCycles(dut.clk, SCLK_HALF_CYCLES)
-        set_ui_bit(dut, UI_SCLK, 1)  # Rising edge: DUT drives MISO on previous falling edge
+        set_ui_bit(dut, UI_SCLK, 1)
         bit = (int(dut.uo_out.value) >> UO_MISO) & 1
         data = (data << 1) | bit
         await ClockCycles(dut.clk, SCLK_HALF_CYCLES)
-        set_ui_bit(dut, UI_SCLK, 0)  # Falling edge: DUT drives MISO for next bit
+        set_ui_bit(dut, UI_SCLK, 0)
     return data
 
 
@@ -96,7 +118,6 @@ async def send_work_unit(dut, base_key, count, pt_a, pt_b, target_a, target_b):
         await spi_send_byte(dut, (target_b >> (8 * i)) & 0xFF)
     set_ui_bit(dut, UI_CS_N, 1)
 
-    
 
 async def wait_ready(dut, timeout_cycles=200000):
     # count=1 in every scenario below keeps this well within budget -
@@ -105,7 +126,7 @@ async def wait_ready(dut, timeout_cycles=200000):
     # genuine hang, not an expected duration.
     for _ in range(timeout_cycles):
         await RisingEdge(dut.clk)
-        if not (int(dut.uo_out.value) >> UO_READY) & 1:
+        if (int(dut.uo_out.value) >> UO_READY) & 1:
             return
     assert False, "timed out waiting for ready"
 
@@ -113,7 +134,6 @@ async def wait_ready(dut, timeout_cycles=200000):
 async def recv_response(dut):
     await wait_ready(dut)
     set_ui_bit(dut, UI_CS_N, 0)
-    await ClockCycles(dut.clk, 10)  # Let DUT prepare MISO (critical!)
     sync = await spi_read_byte(dut)
     status = await spi_read_byte(dut)
     result = {"sync": sync, "status": status}
