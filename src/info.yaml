@@ -1,0 +1,55 @@
+# info.yaml - Tiny Tapeout project configuration.
+#
+# HONEST CAVEAT: the Verilog port interface (ui_in/uo_out/uio_*/ena/clk/
+# rst_n) was confirmed stable and consistent across every current TT
+# project/template checked before writing tt_um_rc5_72.v, so that file
+# was written with real confidence. This YAML's exact field names/schema
+# is comparatively more likely to have shifted across TT shuttle rounds
+# (tt06 vs tt10 vs ttsky vs ttihp all appeared in what was checked) - this
+# is a well-reasoned draft, not something to trust blindly. Clone the
+# actual, current template repo for whichever shuttle this targets and
+# diff this against its real info.yaml before submitting, rather than
+# relying on this file's schema alone.
+
+project:
+  title:        "RC5-72 iterative cracker core"
+  author:       "TODO: your name"
+  discord:      "TODO: your discord handle, optional"
+  description:  "Area-optimized, iterative RC5-72 batch-search core - tests one key at a time (~93 cycles/key) against a target ciphertext, SPI slave interface. Trades throughput for area versus a fully-pipelined design, deliberately, for ASIC submission."
+  language:     "Verilog"
+  clock_hz:     0          # TODO: set to the real target clock, e.g. 10000000 for 10MHz - re-derive SPI_SCLK_DIV-equivalent margins for the real controller board's own clock once chosen, same open item flagged throughout this project's own FPGA work
+  source_files:
+    - "tt_um_rc5_72.v"
+    - "rc5_batch_controller_spi.v"
+    - "rc5_batch_controller.v"
+    - "rc5_iterative_core.v"
+    - "spi_slave.v"
+  top_module:   "tt_um_rc5_72"
+  tiles:        "TODO: fill in once a real sky130-targeted synth/OpenLane area report is available - back-of-envelope estimate from generic yosys synthesis was ~13 tiles (see project history), NOT yet a real, technology-mapped number"
+
+# Pin mapping - matches tt_um_rc5_72.v's own port assignments exactly
+pinout:
+  ui[0]: "spi sclk (in)"
+  ui[1]: "spi mosi (in)"
+  ui[2]: "spi cs_n (in)"
+  ui[3]: ""
+  ui[4]: ""
+  ui[5]: ""
+  ui[6]: ""
+  ui[7]: ""
+  uo[0]: "spi miso (out)"
+  uo[1]: "spi ready (out)"
+  uo[2]: ""
+  uo[3]: ""
+  uo[4]: ""
+  uo[5]: ""
+  uo[6]: ""
+  uo[7]: ""
+  uio[0]: ""
+  uio[1]: ""
+  uio[2]: ""
+  uio[3]: ""
+  uio[4]: ""
+  uio[5]: ""
+  uio[6]: ""
+  uio[7]: ""
