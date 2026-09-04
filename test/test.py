@@ -109,7 +109,7 @@ async def wait_ready(dut, timeout_cycles=200000):
         await RisingEdge(dut.clk)
         if (int(dut.uo_out.value) >> UO_READY) & 1:
             return
-    raise cocotb.result.TestFailure("timed out waiting for ready")
+    assert False, "timed out waiting for ready"
 
 
 async def recv_response(dut):
