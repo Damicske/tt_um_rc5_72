@@ -66,18 +66,20 @@ async def spi_send_byte(dut, data):
 
 
 async def spi_read_byte(dut):
-    # Pure read - mosi held low throughout, sample miso on each rising
-    # edge (matches spi_slave.v's own convention: miso changes on the
-    # falling edge, so it's stable before the next rising-edge sample).
     data = 0
-    set_ui_bit(dut, UI_MOSI, 0)
+    set_ui_bit(dut, UI_MOSI, 0)  # MOSI low for read
+    # Dummy rising/falling edge to start the transaction
+    await ClockCycles(dut.clk, SCLK_HALF_CYCLES)
+    set_ui_bit(dut, UI_SCLK, 1)  # Rising edge (DUT samples MOSI, but we don't care)
+    await ClockCycles(dut.clk, SCLK_HALF_CYCLES)
+    set_ui_bit(dut, UI_SCLK, 0)  # Falling edge (DUT drives MISO for bit 7)
     for i in range(7, -1, -1):
         await ClockCycles(dut.clk, SCLK_HALF_CYCLES)
-        set_ui_bit(dut, UI_SCLK, 1)
+        set_ui_bit(dut, UI_SCLK, 1)  # Rising edge (sample MISO here)
         bit = (int(dut.uo_out.value) >> UO_MISO) & 1
         data = (data << 1) | bit
         await ClockCycles(dut.clk, SCLK_HALF_CYCLES)
-        set_ui_bit(dut, UI_SCLK, 0)
+        set_ui_bit(dut, UI_SCLK, 0)  # Falling edge (DUT drives MISO for next bit)
     return data
 
 
@@ -97,7 +99,7 @@ async def send_work_unit(dut, base_key, count, pt_a, pt_b, target_a, target_b):
         await spi_send_byte(dut, (target_a >> (8 * i)) & 0xFF)
     for i in range(4):
         await spi_send_byte(dut, (target_b >> (8 * i)) & 0xFF)
-    #set_ui_bit(dut, UI_CS_N, 1)
+    set_ui_bit(dut, UI_CS_N, 1)
 
     
 
@@ -115,7 +117,7 @@ async def wait_ready(dut, timeout_cycles=200000):
 
 async def recv_response(dut):
     await wait_ready(dut)
-   # set_ui_bit(dut, UI_CS_N, 0)
+    set_ui_bit(dut, UI_CS_N, 0)
     sync = await spi_read_byte(dut)
     status = await spi_read_byte(dut)
     result = {"sync": sync, "status": status}
