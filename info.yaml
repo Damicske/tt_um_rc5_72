@@ -22,6 +22,7 @@ project:
     - "rc5_batch_controller.v"
     - "rc5_iterative_core.v"
     - "spi_slave.v"
+    
   # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
   pinout:
     # Inputs
@@ -51,5 +52,6 @@ project:
     uio[5]: ""
     uio[6]: ""
     uio[7]: ""
+    
   # Do not change!
   yaml_version: 6
