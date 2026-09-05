@@ -181,7 +181,21 @@ CASE3_KEY, CASE3_PT_A, CASE3_PT_B, CASE3_TA, CASE3_TB = \
 
 @cocotb.test()
 async def test_no_match(dut):
-    cocotb.start_soon(Clock(dut.clk, 20, units="ns").start())
+    # DIAGNOSTIC: was 20ns (50MHz) - genuinely FASTER than this design's
+    # real, signed-off max frequency (clock_hz=45,000,000 in info.yaml,
+    # confirmed already set - not the 0 placeholder previously assumed).
+    # Suspected real gate-level setup/hold violation on the
+    # tx_busy->ready combinational path specifically from exceeding that
+    # signed-off maximum, not a logic bug (see project notes: recurring
+    # X on uo_out[1:0] at the end of every transmission, gate-level
+    # simulation only, never seen in RTL simulation - RTL sim has no
+    # timing model at all, so overspeed is invisible there by
+    # construction). Testing at exactly the claimed 45MHz (22.22ns,
+    # 1/45e6) rather than an arbitrary slower value - a clean pass here
+    # is real confirmation the signoff is accurate; if the X survives
+    # even here, that points at the signoff itself needing scrutiny,
+    # not just the test's own clock choice.
+    cocotb.start_soon(Clock(dut.clk, 22.22, units="ns").start())
     await reset(dut)
     await send_work_unit(dut, CASE1_KEY, 1, CASE1_PT_A, CASE1_PT_B, CASE1_TA, CASE1_TB)
     resp = await recv_response(dut)
@@ -191,7 +205,7 @@ async def test_no_match(dut):
 
 @cocotb.test()
 async def test_full_match(dut):
-    cocotb.start_soon(Clock(dut.clk, 20, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 22.22, units="ns").start())
     await reset(dut)
     await send_work_unit(dut, CASE3_KEY, 1, CASE3_PT_A, CASE3_PT_B, CASE3_TA, CASE3_TB)
     resp = await recv_response(dut)
@@ -204,7 +218,7 @@ async def test_full_match(dut):
 
 @cocotb.test()
 async def test_cmc(dut):
-    cocotb.start_soon(Clock(dut.clk, 20, units="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 22.22, units="ns").start())
     await reset(dut)
     await send_work_unit(dut, CASE2_KEY, 1, CASE2_PT_A, CASE2_PT_B, CASE2_TA, CASE2_TB)
     resp = await recv_response(dut)
