@@ -25,12 +25,19 @@ UI_CS_N = 2
 UO_MISO = 0
 UO_READY = 1
 
-# dut.clk cycles per SPI half-bit-period - comfortably past the 2-cycle
-# minimum spi_slave.v's own 2-stage synchronizers need to register a
-# change, though with real margin since it costs little in simulation
-# time (see this project's own history for why marginal SPI timing is
-# worth avoiding rather than cutting close).
-SCLK_HALF_CYCLES = 4
+# dut.clk cycles per SPI half-bit-period. FIX: was 4 (80ns) - widened to
+# match the margin already confirmed safe in this project's own earlier,
+# successful Verilog-master integration test (SPI_SCLK_DIV=8 at this
+# same 20ns clock period = 160ns half-period). Hypothesis: 80ns wasn't
+# enough time for the real, multi-cycle internal handoff between bytes
+# (spi_slave detects tx_busy clear -> rc5_batch_controller_spi's own TX
+# state machine issues the next tx_start -> spi_slave pre-loads the new
+# byte onto miso) to complete before the first bit of the NEXT byte gets
+# sampled - consistent with the observed +0x80 corruption appearing only
+# from the second byte onward, never on the first (sync) byte of any
+# response, and with the exact same underlying RTL having already
+# passed cleanly under the wider margin.
+SCLK_HALF_CYCLES = 8
 
 
 async def reset(dut):
